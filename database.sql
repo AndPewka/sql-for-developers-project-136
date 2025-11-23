@@ -120,7 +120,7 @@ CREATE TABLE IF NOT EXISTS enrollments (
                                            id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
                                            user_id BIGINT NOT NULL,
                                            program_id BIGINT NOT NULL,
-                                           status VARCHAR(50) NOT NULL,      -- active | pending | cancelled | completed
+                                           status VARCHAR(50) NOT NULL CHECK (status IN ('active', 'pending', 'cancelled', 'completed')),
                                            created_at TIMESTAMP NOT NULL DEFAULT NOW(),
                                            updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
 
@@ -132,6 +132,7 @@ CREATE TABLE IF NOT EXISTS enrollments (
 );
 
 
+
 -- ===========================
 -- Таблица: payments
 -- Оплаты за подписки
@@ -140,14 +141,15 @@ CREATE TABLE IF NOT EXISTS payments (
                                         id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
                                         enrollment_id BIGINT NOT NULL,
                                         amount NUMERIC(10,2) NOT NULL,
-                                        status VARCHAR(50) NOT NULL,      -- pending | paid | failed | refunded
-                                        paid_at TIMESTAMP,                -- дата оплаты (может быть NULL до оплаты)
+                                        status VARCHAR(50) NOT NULL CHECK (status IN ('pending', 'paid', 'failed', 'refunded')),
+                                        paid_at TIMESTAMP,
                                         created_at TIMESTAMP NOT NULL DEFAULT NOW(),
                                         updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
 
                                         CONSTRAINT fk_payments_enrollment
                                             FOREIGN KEY (enrollment_id) REFERENCES enrollments(id)
 );
+
 
 
 -- ===========================
@@ -158,16 +160,18 @@ CREATE TABLE IF NOT EXISTS program_completions (
                                                    id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
                                                    user_id BIGINT NOT NULL,
                                                    program_id BIGINT NOT NULL,
-                                                   status VARCHAR(50) NOT NULL,      -- active | completed | pending | cancelled
+                                                   status VARCHAR(50) NOT NULL CHECK (status IN ('active', 'completed', 'pending', 'cancelled')),
                                                    started_at TIMESTAMP,
                                                    completed_at TIMESTAMP,
                                                    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
                                                    updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+
                                                    CONSTRAINT fk_program_completion_user
                                                        FOREIGN KEY (user_id) REFERENCES users(id),
                                                    CONSTRAINT fk_program_completion_program
                                                        FOREIGN KEY (program_id) REFERENCES programs(id)
 );
+
 
 -- ===========================
 -- Таблица: certificates
@@ -247,10 +251,12 @@ CREATE TABLE IF NOT EXISTS blogs (
                                      user_id BIGINT NOT NULL,
                                      name VARCHAR(255) NOT NULL,
                                      content TEXT NOT NULL,
-                                     status VARCHAR(50) NOT NULL,                -- created | in moderation | published | archived
+                                     status VARCHAR(50) NOT NULL CHECK (status IN ('created', 'in moderation', 'published', 'archived')),
                                      created_at TIMESTAMP NOT NULL DEFAULT NOW(),
                                      updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+
                                      CONSTRAINT fk_blogs_user
                                          FOREIGN KEY (user_id) REFERENCES users(id)
 );
+
 
