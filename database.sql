@@ -3,7 +3,7 @@
 -- ===========================
 CREATE TABLE IF NOT EXISTS programs (
                                         id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-                                        title VARCHAR(255) NOT NULL,
+                                        name VARCHAR(255) NOT NULL,
                                         price NUMERIC(10, 2) NOT NULL,
                                         program_type VARCHAR(100) NOT NULL,
                                         created_at TIMESTAMP NOT NULL DEFAULT NOW(),
@@ -16,11 +16,11 @@ CREATE TABLE IF NOT EXISTS programs (
 -- ===========================
 CREATE TABLE IF NOT EXISTS modules (
                                        id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-                                       title VARCHAR(255) NOT NULL,
+                                       name VARCHAR(255) NOT NULL,
                                        description TEXT NOT NULL,
                                        created_at TIMESTAMP NOT NULL DEFAULT NOW(),
                                        updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
-                                       is_deleted BOOLEAN NOT NULL DEFAULT FALSE
+                                       deleted_at TIMESTAMP
 );
 
 
@@ -29,11 +29,11 @@ CREATE TABLE IF NOT EXISTS modules (
 -- ===========================
 CREATE TABLE IF NOT EXISTS courses (
                                        id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-                                       title VARCHAR(255) NOT NULL,
+                                       name VARCHAR(255) NOT NULL,
                                        description TEXT NOT NULL,
                                        created_at TIMESTAMP NOT NULL DEFAULT NOW(),
                                        updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
-                                       is_deleted BOOLEAN NOT NULL DEFAULT FALSE
+                                       deleted_at TIMESTAMP
 );
 
 
@@ -42,13 +42,13 @@ CREATE TABLE IF NOT EXISTS courses (
 -- ===========================
 CREATE TABLE IF NOT EXISTS lessons (
                                        id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-                                       title VARCHAR(255) NOT NULL,
+                                       name VARCHAR(255) NOT NULL,
                                        content TEXT NOT NULL,
                                        video_url TEXT,
                                        position INTEGER NOT NULL,
                                        created_at TIMESTAMP NOT NULL DEFAULT NOW(),
                                        updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
-                                       is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
+                                       deleted_at TIMESTAMP,
                                        course_id BIGINT NOT NULL,
                                        CONSTRAINT fk_lessons_courses
                                            FOREIGN KEY (course_id) REFERENCES courses(id)
@@ -74,14 +74,14 @@ CREATE TABLE IF NOT EXISTS program_modules (
 -- Таблица связи: module_courses
 -- связь многие-к-многим Modules <-> Courses
 -- ===========================
-CREATE TABLE IF NOT EXISTS module_courses (
-                                              module_id BIGINT NOT NULL,
+CREATE TABLE IF NOT EXISTS course_modules (
                                               course_id BIGINT NOT NULL,
-                                              PRIMARY KEY (module_id, course_id),
-                                              CONSTRAINT fk_mc_modules
-                                                  FOREIGN KEY (module_id) REFERENCES modules(id),
-                                              CONSTRAINT fk_mc_courses
-                                                  FOREIGN KEY (course_id) REFERENCES courses(id)
+                                              module_id BIGINT NOT NULL,
+                                              PRIMARY KEY (course_id, module_id),
+                                              CONSTRAINT fk_cm_courses
+                                                  FOREIGN KEY (course_id) REFERENCES courses(id),
+                                              CONSTRAINT fk_cm_modules
+                                                  FOREIGN KEY (module_id) REFERENCES modules(id)
 );
 
 -- ===========================
@@ -100,14 +100,14 @@ CREATE TABLE IF NOT EXISTS teaching_groups (
 -- ===========================
 CREATE TABLE IF NOT EXISTS users (
                                      id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-                                     username VARCHAR(255) NOT NULL UNIQUE,
+                                     name VARCHAR(255) NOT NULL,
                                      email VARCHAR(255) NOT NULL UNIQUE,
                                      password_hash TEXT NOT NULL,
                                      role VARCHAR(50) NOT NULL,             -- student | teacher | admin
                                      teaching_group_id BIGINT NOT NULL,
                                      created_at TIMESTAMP NOT NULL DEFAULT NOW(),
                                      updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
-
+                                     deleted_at TIMESTAMP,
                                      CONSTRAINT fk_users_groups
                                          FOREIGN KEY (teaching_group_id) REFERENCES teaching_groups(id)
 );
@@ -160,17 +160,14 @@ CREATE TABLE IF NOT EXISTS program_completions (
                                                    program_id BIGINT NOT NULL,
                                                    status VARCHAR(50) NOT NULL,      -- active | completed | pending | cancelled
                                                    started_at TIMESTAMP,
-                                                   finished_at TIMESTAMP,
+                                                   completed_at TIMESTAMP,
                                                    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
                                                    updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
-
                                                    CONSTRAINT fk_program_completion_user
                                                        FOREIGN KEY (user_id) REFERENCES users(id),
-
                                                    CONSTRAINT fk_program_completion_program
                                                        FOREIGN KEY (program_id) REFERENCES programs(id)
 );
-
 
 -- ===========================
 -- Таблица: certificates
@@ -180,17 +177,16 @@ CREATE TABLE IF NOT EXISTS certificates (
                                             id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
                                             user_id BIGINT NOT NULL,
                                             program_id BIGINT NOT NULL,
-                                            certificate_url TEXT NOT NULL,
+                                            url TEXT NOT NULL,
                                             issued_at TIMESTAMP NOT NULL,
                                             created_at TIMESTAMP NOT NULL DEFAULT NOW(),
                                             updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
-
                                             CONSTRAINT fk_certificates_user
                                                 FOREIGN KEY (user_id) REFERENCES users(id),
-
                                             CONSTRAINT fk_certificates_program
                                                 FOREIGN KEY (program_id) REFERENCES programs(id)
 );
+
 
 -- ===========================
 -- Таблица: quizzes
@@ -199,14 +195,14 @@ CREATE TABLE IF NOT EXISTS certificates (
 CREATE TABLE IF NOT EXISTS quizzes (
                                        id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
                                        lesson_id BIGINT NOT NULL,
-                                       title VARCHAR(255) NOT NULL,
+                                       name VARCHAR(255) NOT NULL,
                                        content TEXT NOT NULL,
                                        created_at TIMESTAMP NOT NULL DEFAULT NOW(),
                                        updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
-
                                        CONSTRAINT fk_quizzes_lesson
                                            FOREIGN KEY (lesson_id) REFERENCES lessons(id)
 );
+
 
 
 -- ===========================
@@ -216,14 +212,14 @@ CREATE TABLE IF NOT EXISTS quizzes (
 CREATE TABLE IF NOT EXISTS exercises (
                                          id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
                                          lesson_id BIGINT NOT NULL,
-                                         title VARCHAR(255) NOT NULL,
-                                         exercise_url TEXT NOT NULL,
+                                         name VARCHAR(255) NOT NULL,
+                                         url TEXT NOT NULL,
                                          created_at TIMESTAMP NOT NULL DEFAULT NOW(),
                                          updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
-
                                          CONSTRAINT fk_exercises_lesson
                                              FOREIGN KEY (lesson_id) REFERENCES lessons(id)
 );
+
 
 -- ===========================
 -- Таблица: discussions
@@ -233,36 +229,28 @@ CREATE TABLE IF NOT EXISTS discussions (
                                            id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
                                            lesson_id BIGINT NOT NULL,
                                            user_id BIGINT NOT NULL,
-                                           parent_id BIGINT,                           -- ссылка на родительское сообщение (NULL — корень ветки)
-                                           content TEXT NOT NULL,
+                                           text TEXT NOT NULL,
                                            created_at TIMESTAMP NOT NULL DEFAULT NOW(),
                                            updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
-
                                            CONSTRAINT fk_discussions_lesson
                                                FOREIGN KEY (lesson_id) REFERENCES lessons(id),
-
                                            CONSTRAINT fk_discussions_user
-                                               FOREIGN KEY (user_id) REFERENCES users(id),
-
-                                           CONSTRAINT fk_discussions_parent
-                                               FOREIGN KEY (parent_id) REFERENCES discussions(id)
+                                               FOREIGN KEY (user_id) REFERENCES users(id)
 );
-
 
 -- ===========================
 -- Таблица: blog
 -- Личные статьи пользователей
 -- ===========================
-CREATE TABLE IF NOT EXISTS blog (
-                                    id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-                                    user_id BIGINT NOT NULL,
-                                    title VARCHAR(255) NOT NULL,
-                                    content TEXT NOT NULL,
-                                    status VARCHAR(50) NOT NULL,                -- created | in moderation | published | archived
-                                    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
-                                    updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
-
-                                    CONSTRAINT fk_blog_user
-                                        FOREIGN KEY (user_id) REFERENCES users(id)
+CREATE TABLE IF NOT EXISTS blogs (
+                                     id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+                                     user_id BIGINT NOT NULL,
+                                     name VARCHAR(255) NOT NULL,
+                                     content TEXT NOT NULL,
+                                     status VARCHAR(50) NOT NULL,                -- created | in moderation | published | archived
+                                     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+                                     updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+                                     CONSTRAINT fk_blogs_user
+                                         FOREIGN KEY (user_id) REFERENCES users(id)
 );
 
