@@ -236,7 +236,7 @@ CREATE TABLE IF NOT EXISTS discussions (
                                            id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
                                            lesson_id BIGINT NOT NULL,
                                            user_id BIGINT NOT NULL,
-                                           text TEXT NOT NULL,
+                                           text JSONB NOT NULL,          -- было TEXT NOT NULL, стало JSONB NOT NULL
                                            created_at TIMESTAMP NOT NULL DEFAULT NOW(),
                                            updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
                                            CONSTRAINT fk_discussions_lesson
