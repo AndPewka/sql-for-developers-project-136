@@ -196,17 +196,20 @@ CREATE TABLE IF NOT EXISTS certificates (
 -- Таблица: quizzes
 -- Тесты, привязанные к урокам
 -- ===========================
+-- ===========================
+-- Таблица: quizzes
+-- Тесты, привязанные к урокам
+-- ===========================
 CREATE TABLE IF NOT EXISTS quizzes (
                                        id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
                                        lesson_id BIGINT NOT NULL,
                                        name VARCHAR(255) NOT NULL,
-                                       content TEXT NOT NULL,
+                                       content JSONB NOT NULL,          -- было TEXT, стало JSONB
                                        created_at TIMESTAMP NOT NULL DEFAULT NOW(),
                                        updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
                                        CONSTRAINT fk_quizzes_lesson
                                            FOREIGN KEY (lesson_id) REFERENCES lessons(id)
 );
-
 
 
 -- ===========================
