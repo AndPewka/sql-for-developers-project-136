@@ -45,11 +45,11 @@ CREATE TABLE IF NOT EXISTS lessons (
                                        name VARCHAR(255) NOT NULL,
                                        content TEXT NOT NULL,
                                        video_url TEXT,
-                                       position INTEGER NOT NULL,
+                                       position INTEGER,            -- убрали NOT NULL
                                        created_at TIMESTAMP NOT NULL DEFAULT NOW(),
                                        updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
                                        deleted_at TIMESTAMP,
-                                       course_id BIGINT NOT NULL,
+                                       course_id BIGINT,            -- убрали NOT NULL
                                        CONSTRAINT fk_lessons_courses
                                            FOREIGN KEY (course_id) REFERENCES courses(id)
 );
